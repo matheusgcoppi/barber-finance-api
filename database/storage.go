@@ -1,16 +1,21 @@
-package service
+package database
 
 import (
 	"fmt"
 	"github.com/joho/godotenv"
 	"github.com/labstack/gommon/log"
+	"github.com/matheusgcoppi/barber-finance-api/database/model"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"os"
 )
 
-func DBconnection() error {
-	err := godotenv.Load()
+type CustomDB struct {
+	Db *gorm.DB
+}
+
+func NewPostgres() (*CustomDB, error) {
+	err := godotenv.Load("/Users/matheusgcoppi/Development/Golang/barber-finance/.env")
 	if err != nil {
 		log.Fatal(".env file could not be loaded.")
 	}
@@ -27,14 +32,13 @@ func DBconnection() error {
 	)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	sqlDB, _ := db.DB()
-	err = sqlDB.Close()
+	err = db.AutoMigrate(&model.User{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return &CustomDB{Db: db}, nil
 }
