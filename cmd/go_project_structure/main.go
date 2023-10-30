@@ -20,7 +20,7 @@ func main() {
 
 	server := service.NewAPIServer(db, &userRepository)
 
-	routes.SetupRoutes(e, server, &userRepository)
+	routes.SetupRoutes(e, server)
 
 	e.Logger.Fatal(e.Start(":8080"))
 

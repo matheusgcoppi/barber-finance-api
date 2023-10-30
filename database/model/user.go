@@ -1,6 +1,9 @@
 package model
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+	"time"
+)
 
 type Type int
 
@@ -10,13 +13,20 @@ const (
 	Support Type = 3
 )
 
+type CustomModel struct {
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"deleted_at"`
+}
+
 type User struct {
-	gorm.Model
-	Active   bool
-	Type     Type `gorm:"not null" sql:"index"`
-	Username string
-	Email    string `gorm:"unique"`
-	Password string
+	CustomModel
+	Active   bool   `json:"active"`
+	Type     Type   `gorm:"not null" sql:"index" json:"type"`
+	Username string `json:"username"`
+	Email    string `gorm:"unique" json:"email"`
+	Password string `json:"password"`
 }
 
 type UserDTO struct {

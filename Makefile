@@ -8,4 +8,4 @@ run: build
 	@~/bin/barber-finance/$(BINARY_NAME)
 
 test:
-	@go test -v ./...
+	@go test -v ./tests

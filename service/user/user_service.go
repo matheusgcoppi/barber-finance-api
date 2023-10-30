@@ -34,7 +34,7 @@ func (a *APIServer) HandleCreateUser(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Type is required."})
 	}
 
-	if (userDTO.Type < 1) || (userDTO.Type > 3) {
+	if (userDTO.Type != model.System) && (userDTO.Type != model.Support) && (userDTO.Type != model.Admin) {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "This Role does not exist."})
 	}
 
@@ -58,11 +58,12 @@ func (a *APIServer) HandleCreateUser(c echo.Context) error {
 		userDTO.Password,
 	)
 
-	if err := a.repositoryServer.CreateUser(newUser); err != nil {
+	err, createdUser := a.repositoryServer.CreateUser(newUser)
+	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	return c.JSON(http.StatusOK, newUser)
+	return c.JSON(http.StatusOK, createdUser)
 }
 
 func (a *APIServer) HandleGetUser(c echo.Context) error {

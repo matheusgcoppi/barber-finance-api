@@ -10,8 +10,8 @@ type UserRepository struct {
 	Store *database.CustomDB
 }
 
-func (s *UserRepository) CreateUser(user *model.User) error {
-	newUser := model.User{
+func (s *UserRepository) CreateUser(user *model.User) (error, *model.User) {
+	newUser := &model.User{
 		Active:   user.Active,
 		Type:     user.Type,
 		Username: user.Username,
@@ -21,9 +21,9 @@ func (s *UserRepository) CreateUser(user *model.User) error {
 
 	result := s.Store.Db.Create(&newUser)
 	if result.Error != nil {
-		return result.Error
+		return result.Error, nil
 	}
-	return nil
+	return nil, newUser
 }
 
 func (s *UserRepository) GetUser() (error, []model.User) {
@@ -37,10 +37,11 @@ func (s *UserRepository) GetUser() (error, []model.User) {
 
 func NewUser(active bool, userType int, username, email, password string) *model.User {
 	return &model.User{
-		Active:   active,
-		Type:     model.Type(userType),
-		Username: username,
-		Email:    email,
-		Password: password,
+		CustomModel: model.CustomModel{},
+		Active:      active,
+		Type:        model.Type(userType),
+		Username:    username,
+		Email:       email,
+		Password:    password,
 	}
 }

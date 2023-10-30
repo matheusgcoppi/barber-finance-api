@@ -6,23 +6,76 @@ import (
 	"github.com/matheusgcoppi/barber-finance-api/database"
 	"github.com/matheusgcoppi/barber-finance-api/repository"
 	service "github.com/matheusgcoppi/barber-finance-api/service/user"
+	"github.com/matheusgcoppi/barber-finance-api/utils"
 	"github.com/stretchr/testify/assert"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
-func TestHandleGetUser(t *testing.T) {
-	// Create a new Echo instance and a request to test the route
+var (
+	server *service.APIServer
+	db     *database.CustomDB
+)
+
+func init() {
+	var err error
+	db, err = database.NewPostgresTest()
+	if err != nil {
+		panic("Failed to initialize the test database: " + err.Error())
+	}
+
+	repositoryServer := repository.UserRepository{Store: db}
+	server = service.NewAPIServer(db, &repositoryServer)
+}
+
+func createServer(t *testing.T, method string, path string, body io.Reader) (*service.APIServer, echo.Context, *httptest.ResponseRecorder) {
 	e := echo.New()
-	req := httptest.NewRequest(http.MethodGet, "/user", nil)
+	method = strings.ToUpper(method)
+	var req *http.Request
+	if method == "GET" {
+		req = httptest.NewRequest(http.MethodGet, path, body)
+	} else if method == "POST" {
+		req = httptest.NewRequest(http.MethodPost, path, body)
+	} else if method == "PUT" {
+		req = httptest.NewRequest(http.MethodPut, path, body)
+	} else if method == "DELETE" {
+		req = httptest.NewRequest(http.MethodDelete, path, body)
+	} else {
+		t.Error("Invalid method:", method)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	// Create an instance of your API server
-	db, _ := database.NewPostgres()
-	repositoryServer := repository.UserRepository{Store: db} // Create your repository server (if necessary)
-	server := service.NewAPIServer(db, &repositoryServer)
+	return server, c, rec
+}
+
+func TestCreateUser(t *testing.T) {
+	body := strings.NewReader(`{"type": 3, "username": "matheus","email": "johndoe@example.com", "password": "teste"}`)
+	server, c, rec := createServer(t, "post", "/user", body)
+
+	err := server.HandleCreateUser(c)
+
+	jsonResponse := rec.Body.String()
+	var words = []string{"matheus", "johndoe@example.com", "teste"}
+
+	if !utils.ContainsUtil(words, jsonResponse) {
+		t.Errorf("The JSON response does not contain expected words: %v", words)
+	}
+
+	// Assert that there was no error
+	assert.NoError(t, err)
+
+	// Assert the HTTP status code (you can customize this based on your implementation)
+	assert.Equal(t, http.StatusOK, rec.Code)
+}
+
+func TestHandleGetUser(t *testing.T) {
+	server, c, rec := createServer(t, "get", "/user", nil)
 
 	// Call the route handler function
 	err := server.HandleGetUser(c)
@@ -32,15 +85,10 @@ func TestHandleGetUser(t *testing.T) {
 
 	// Assert the HTTP status code (200 OK)
 	assert.Equal(t, http.StatusOK, rec.Code)
-
-	// Add further assertions as needed to check the response body, headers, etc.
 }
 
 func TestHandleEnv(t *testing.T) {
-	// Load the .env file
 	if err := godotenv.Load("/Users/matheusgcoppi/Development/Golang/barber-finance/.env"); err != nil {
 		t.Fatal("Error loading .env file")
 	}
-
-	// Your test logic here
 }
