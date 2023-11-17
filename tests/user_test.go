@@ -47,17 +47,16 @@ func createServer(t *testing.T, method string, path string, body io.Reader, id s
 		t.Error("Invalid method:", method)
 	}
 
-	originalPath := path
-
-	if id != "" {
-		path = strings.Replace(path, ":id", id, 1)
-	}
 	req.Header.Set("Content-Type", "application/json")
 
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
+	if id != "" {
+		c.SetParamNames("id")
+		c.SetParamValues(id)
+	}
 
-	c.SetPath(originalPath)
+	c.SetPath(path)
 
 	return server, c, rec
 }
@@ -105,21 +104,21 @@ func TestGetUserByID(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
 
-func TestDeleteUser(t *testing.T) {
-	server, c, rec := createServer(t, "delete", "/user/:id", nil, "1")
+func TestUpdateUser(t *testing.T) {
+	body := strings.NewReader(`{"type": 3, "username": "update","email": "update@example.com", "password": "update"}`)
+	server, c, rec := createServer(t, "put", "/user/:id", body, "1")
 
-	err := server.HandleDeleteUser(c)
+	err := server.HandleUpdateUser(c)
 
 	assert.NoError(t, err)
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
 
-func TestUpdateUser(t *testing.T) {
-	body := strings.NewReader(`{"type": 3, "username": "update","email": "update@example.com", "password": "update"}`)
-	server, c, rec := createServer(t, "put", "/user/:id", body, "1")
+func TestDeleteUser(t *testing.T) {
+	server, c, rec := createServer(t, "delete", "/user/:id", nil, "1")
 
-	err := server.HandleUpdateUser(c)
+	err := server.HandleDeleteUser(c)
 
 	assert.NoError(t, err)
 
