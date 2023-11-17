@@ -1,11 +1,14 @@
 package service
 
 import (
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/matheusgcoppi/barber-finance-api/database"
 	"github.com/matheusgcoppi/barber-finance-api/database/model"
 	"github.com/matheusgcoppi/barber-finance-api/repository"
+	"github.com/matheusgcoppi/barber-finance-api/utils"
 	"net/http"
+	"regexp"
 )
 
 type APIServer struct {
@@ -75,4 +78,56 @@ func (a *APIServer) HandleGetUser(c echo.Context) error {
 		}
 	}
 	return c.JSON(http.StatusOK, result)
+}
+
+func (a *APIServer) HandleGetUserByID(c echo.Context) error {
+	id := c.Param("id")
+	fmt.Println(c.Request())
+	fmt.Println(c.Path())
+	result, err := a.repositoryServer.GetUserByID(id)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, result)
+}
+
+func (a *APIServer) HandleDeleteUser(c echo.Context) error {
+	id := c.Param("id")
+	err := a.repositoryServer.DeleteUser(id)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, map[string]string{"result": "User with id = " + id + " was deleted successfully"})
+}
+
+func (a *APIServer) HandleUpdateUser(c echo.Context) error {
+	id := c.Param("id")
+	updatedUser := new(model.UserDTO)
+	if err := c.Bind(updatedUser); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	if updatedUser.Type != 0 {
+		if (updatedUser.Type != model.System) && (updatedUser.Type != model.Support) && (updatedUser.Type != model.Admin) {
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "This Role does not exist."})
+		}
+	}
+
+	if updatedUser.Email != "" {
+		match, _ := regexp.MatchString(utils.EmailPattern, updatedUser.Email)
+		if match == false {
+			println(match)
+			return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid Email Address"})
+		}
+	}
+
+	if updatedUser.Password == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Password cannot be null"})
+	}
+
+	user, err := a.repositoryServer.UpdateUser(updatedUser, id)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+	return c.JSON(http.StatusOK, user)
 }

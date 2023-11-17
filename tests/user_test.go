@@ -31,7 +31,7 @@ func init() {
 	server = service.NewAPIServer(db, &repositoryServer)
 }
 
-func createServer(t *testing.T, method string, path string, body io.Reader) (*service.APIServer, echo.Context, *httptest.ResponseRecorder) {
+func createServer(t *testing.T, method string, path string, body io.Reader, id string) (*service.APIServer, echo.Context, *httptest.ResponseRecorder) {
 	e := echo.New()
 	method = strings.ToUpper(method)
 	var req *http.Request
@@ -46,17 +46,25 @@ func createServer(t *testing.T, method string, path string, body io.Reader) (*se
 	} else {
 		t.Error("Invalid method:", method)
 	}
+
+	originalPath := path
+
+	if id != "" {
+		path = strings.Replace(path, ":id", id, 1)
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
+
+	c.SetPath(originalPath)
 
 	return server, c, rec
 }
 
 func TestCreateUser(t *testing.T) {
 	body := strings.NewReader(`{"type": 3, "username": "matheus","email": "johndoe@example.com", "password": "teste"}`)
-	server, c, rec := createServer(t, "post", "/user", body)
+	server, c, rec := createServer(t, "post", "/user", body, "")
 
 	err := server.HandleCreateUser(c)
 
@@ -74,8 +82,8 @@ func TestCreateUser(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
 
-func TestHandleGetUser(t *testing.T) {
-	server, c, rec := createServer(t, "get", "/user", nil)
+func TestGetUser(t *testing.T) {
+	server, c, rec := createServer(t, "get", "/user", nil, "")
 
 	// Call the route handler function
 	err := server.HandleGetUser(c)
@@ -84,6 +92,37 @@ func TestHandleGetUser(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Assert the HTTP status code (200 OK)
+	assert.Equal(t, http.StatusOK, rec.Code)
+}
+
+func TestGetUserByID(t *testing.T) {
+	server, c, rec := createServer(t, "get", "/user/:id", nil, "1")
+
+	err := server.HandleGetUserByID(c)
+
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+}
+
+func TestDeleteUser(t *testing.T) {
+	server, c, rec := createServer(t, "delete", "/user/:id", nil, "1")
+
+	err := server.HandleDeleteUser(c)
+
+	assert.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+}
+
+func TestUpdateUser(t *testing.T) {
+	body := strings.NewReader(`{"type": 3, "username": "update","email": "update@example.com", "password": "update"}`)
+	server, c, rec := createServer(t, "put", "/user/:id", body, "1")
+
+	err := server.HandleUpdateUser(c)
+
+	assert.NoError(t, err)
+
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
 

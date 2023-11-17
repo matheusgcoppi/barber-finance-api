@@ -30,6 +30,7 @@ type User struct {
 }
 
 type UserDTO struct {
+	Active   bool   `json:"active"`
 	Type     Type   `json:"type"`
 	Username string `json:"username"`
 	Email    string `json:"email"`

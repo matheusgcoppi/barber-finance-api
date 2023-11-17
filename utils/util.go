@@ -4,6 +4,10 @@ import (
 	"strings"
 )
 
+const (
+	EmailPattern = `^([a-z\d\.-]+)@([a-z\d-]+)\.([a-z]{2,10})(\.[a-z]{2,8})?$`
+)
+
 func ContainsUtil(words []string, json string) bool {
 	length := len(words)
 	count := 0
