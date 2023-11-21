@@ -4,6 +4,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 	"github.com/matheusgcoppi/barber-finance-api/database"
+	"github.com/matheusgcoppi/barber-finance-api/middleware"
 	"github.com/matheusgcoppi/barber-finance-api/repository"
 	"github.com/matheusgcoppi/barber-finance-api/routes"
 	"github.com/matheusgcoppi/barber-finance-api/service/user"
@@ -20,7 +21,9 @@ func main() {
 
 	server := service.NewAPIServer(db, &userRepository)
 
-	routes.SetupRoutes(e, server)
+	middleware := middleware.NewDatabaseMiddleware(db)
+
+	routes.SetupRoutes(e, server, middleware)
 
 	e.Logger.Fatal(e.Start(":8080"))
 

@@ -1,14 +1,18 @@
 package service
 
 import (
-	"fmt"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 	"github.com/matheusgcoppi/barber-finance-api/database"
 	"github.com/matheusgcoppi/barber-finance-api/database/model"
 	"github.com/matheusgcoppi/barber-finance-api/repository"
 	"github.com/matheusgcoppi/barber-finance-api/utils"
+	"golang.org/x/crypto/bcrypt"
+	_ "golang.org/x/crypto/bcrypt"
 	"net/http"
+	"os"
 	"regexp"
+	"time"
 )
 
 type APIServer struct {
@@ -21,6 +25,55 @@ func NewAPIServer(store *database.CustomDB, repository *repository.UserRepositor
 		store:            store,
 		repositoryServer: repository,
 	}
+}
+
+func HashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	return string(bytes), err
+}
+
+func CheckPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+func (a *APIServer) HandleLogin(c echo.Context) error {
+	var body struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	if err := c.Bind(&body); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	user, err := a.repositoryServer.LoginUser(body.Email, body.Password)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, map[string]string{"error": err.Error()})
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": user.ID,
+		"exp": time.Now().Add(time.Hour * 24 * 30).Unix(),
+	})
+
+	tokenString, err := token.SignedString([]byte(os.Getenv("SECRET_JWT")))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"error": "invalid to create token",
+		})
+	}
+
+	cookie := new(http.Cookie)
+	cookie.Name = "Authorization"
+	cookie.Value = tokenString
+	cookie.Expires = time.Now().Add(time.Hour * 24 * 30)
+	cookie.SameSite = http.SameSiteStrictMode
+	c.SetCookie(cookie)
+
+	return c.JSON(http.StatusOK, map[string]string{"token": tokenString})
 }
 
 func (a *APIServer) HandleIndex(c echo.Context) error {
@@ -53,12 +106,17 @@ func (a *APIServer) HandleCreateUser(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Password is required."})
 	}
 
+	password, err := HashPassword(userDTO.Password)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
 	newUser := repository.NewUser(
 		true,
 		int(userDTO.Type),
 		userDTO.Username,
 		userDTO.Email,
-		userDTO.Password,
+		password,
 	)
 
 	err, createdUser := a.repositoryServer.CreateUser(newUser)
@@ -82,8 +140,6 @@ func (a *APIServer) HandleGetUser(c echo.Context) error {
 
 func (a *APIServer) HandleGetUserByID(c echo.Context) error {
 	id := c.Param("id")
-	fmt.Println(c.Request())
-	fmt.Println(c.Path())
 	result, err := a.repositoryServer.GetUserByID(id)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -130,4 +186,8 @@ func (a *APIServer) HandleUpdateUser(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 	return c.JSON(http.StatusOK, user)
+}
+
+func (a *APIServer) Validate(c echo.Context) error {
+	return c.JSON(http.StatusOK, map[string]string{"message": "I'm logged in"})
 }

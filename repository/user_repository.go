@@ -2,9 +2,12 @@ package repository
 
 import (
 	"fmt"
+	"github.com/jinzhu/gorm"
 	"github.com/matheusgcoppi/barber-finance-api/database"
 	"github.com/matheusgcoppi/barber-finance-api/database/model"
+	"golang.org/x/crypto/bcrypt"
 	_ "gorm.io/gorm"
+	"strings"
 )
 
 type UserRepository struct {
@@ -21,10 +24,31 @@ func (s *UserRepository) CreateUser(user *model.User) (error, *model.User) {
 	}
 
 	result := s.Store.Db.Create(&newUser)
+
 	if result.Error != nil {
-		return result.Error, nil
+		if strings.Contains(result.Error.Error(), "users_email_key") {
+			return fmt.Errorf("email address '%s' is already in use", user.Email), nil
+		} else {
+			return result.Error, nil
+		}
 	}
 	return nil, newUser
+}
+
+func (s *UserRepository) LoginUser(email string, password string) (*model.User, error) {
+	var user model.User
+	result := s.Store.Db.First(&user, "email = ?", email)
+	if gorm.IsRecordNotFoundError(result.Error) {
+		return nil, fmt.Errorf("user not found")
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return nil, fmt.Errorf("invalid password")
+	}
+
+	return &user, nil
 }
 
 func (s *UserRepository) GetUser() (error, []*model.User) {
