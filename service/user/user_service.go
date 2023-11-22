@@ -119,12 +119,18 @@ func (a *APIServer) HandleCreateUser(c echo.Context) error {
 		password,
 	)
 
-	err, createdUser := a.repositoryServer.CreateUser(newUser)
+	user, account, err := a.repositoryServer.CreateUser(newUser)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
+	if account != nil {
+		user.Account.UserId = account.UserId
+		user.Account.User = account.User
+		user.Account.Balance = account.Balance
+		user.Account.CustomModel = account.CustomModel
+	}
 
-	return c.JSON(http.StatusOK, createdUser)
+	return c.JSON(http.StatusOK, user)
 }
 
 func (a *APIServer) HandleGetUser(c echo.Context) error {

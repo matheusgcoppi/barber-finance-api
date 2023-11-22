@@ -21,9 +21,9 @@ func main() {
 
 	server := service.NewAPIServer(db, &userRepository)
 
-	middleware := middleware.NewDatabaseMiddleware(db)
+	middlewaredb := middleware.NewDatabaseMiddleware(db)
 
-	routes.SetupRoutes(e, server, middleware)
+	routes.SetupRoutes(e, server, middlewaredb)
 
 	e.Logger.Fatal(e.Start(":8080"))
 

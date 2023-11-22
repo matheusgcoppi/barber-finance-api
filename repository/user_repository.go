@@ -14,7 +14,7 @@ type UserRepository struct {
 	Store *database.CustomDB
 }
 
-func (s *UserRepository) CreateUser(user *model.User) (error, *model.User) {
+func (s *UserRepository) CreateUser(user *model.User) (*model.User, *model.Account, error) {
 	newUser := &model.User{
 		Active:   user.Active,
 		Type:     user.Type,
@@ -27,12 +27,26 @@ func (s *UserRepository) CreateUser(user *model.User) (error, *model.User) {
 
 	if result.Error != nil {
 		if strings.Contains(result.Error.Error(), "users_email_key") {
-			return fmt.Errorf("email address '%s' is already in use", user.Email), nil
+			return nil, nil, fmt.Errorf("email address '%s' is already in use", user.Email)
 		} else {
-			return result.Error, nil
+			return nil, nil, result.Error
 		}
 	}
-	return nil, newUser
+	if newUser.Type == model.Admin {
+		newAccount := &model.Account{
+			UserId:  newUser.ID,
+			Balance: 0,
+			User:    newUser,
+		}
+
+		account := s.Store.Db.Create(&newAccount)
+		if account.Error != nil {
+			return nil, nil, account.Error
+		}
+		return newUser, newAccount, nil
+	}
+
+	return newUser, nil, nil
 }
 
 func (s *UserRepository) LoginUser(email string, password string) (*model.User, error) {
