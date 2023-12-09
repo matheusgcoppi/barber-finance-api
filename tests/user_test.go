@@ -5,7 +5,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/matheusgcoppi/barber-finance-api/database"
 	"github.com/matheusgcoppi/barber-finance-api/repository"
-	service "github.com/matheusgcoppi/barber-finance-api/service/user"
+	"github.com/matheusgcoppi/barber-finance-api/service"
 	"github.com/matheusgcoppi/barber-finance-api/utils"
 	"github.com/stretchr/testify/assert"
 	"io"
@@ -27,7 +27,7 @@ func init() {
 		panic("Failed to initialize the test database: " + err.Error())
 	}
 
-	repositoryServer := repository.UserRepository{Store: db}
+	repositoryServer := repository.DbRepository{Store: db}
 	server = service.NewAPIServer(db, &repositoryServer)
 }
 

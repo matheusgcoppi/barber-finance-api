@@ -35,7 +35,7 @@ func NewPostgres() (*CustomDB, error) {
 		return nil, err
 	}
 
-	err = db.AutoMigrate(&model.User{}, &model.Account{})
+	err = db.AutoMigrate(&model.User{}, &model.Account{}, &model.Income{}, &model.Expense{})
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,12 @@ func NewPostgresTest() (*CustomDB, error) {
 	tableExists := migrator.HasTable(&model.User{})
 
 	if tableExists {
-		if err := db.Migrator().DropTable(&model.User{}, &model.Account{}); err != nil {
+		if err := db.Migrator().DropTable(
+			&model.User{},
+			&model.Account{},
+			&model.Income{},
+			&model.Expense{},
+		); err != nil {
 			return nil, err
 		}
 	}

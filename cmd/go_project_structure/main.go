@@ -7,7 +7,7 @@ import (
 	"github.com/matheusgcoppi/barber-finance-api/middleware"
 	"github.com/matheusgcoppi/barber-finance-api/repository"
 	"github.com/matheusgcoppi/barber-finance-api/routes"
-	"github.com/matheusgcoppi/barber-finance-api/service/user"
+	"github.com/matheusgcoppi/barber-finance-api/service"
 )
 
 func main() {
@@ -17,7 +17,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	userRepository := repository.UserRepository{Store: db}
+	userRepository := repository.DbRepository{Store: db}
 
 	server := service.NewAPIServer(db, &userRepository)
 

@@ -10,11 +10,11 @@ import (
 	"strings"
 )
 
-type UserRepository struct {
+type DbRepository struct {
 	Store *database.CustomDB
 }
 
-func (s *UserRepository) CreateUser(user *model.User) (*model.User, *model.Account, error) {
+func (s *DbRepository) CreateUser(user *model.User) (*model.User, *model.Account, error) {
 	newUser := &model.User{
 		Active:   user.Active,
 		Type:     user.Type,
@@ -49,7 +49,7 @@ func (s *UserRepository) CreateUser(user *model.User) (*model.User, *model.Accou
 	return newUser, nil, nil
 }
 
-func (s *UserRepository) LoginUser(email string, password string) (*model.User, error) {
+func (s *DbRepository) LoginUser(email string, password string) (*model.User, error) {
 	var user model.User
 	result := s.Store.Db.First(&user, "email = ?", email)
 	if gorm.IsRecordNotFoundError(result.Error) {
@@ -65,7 +65,7 @@ func (s *UserRepository) LoginUser(email string, password string) (*model.User, 
 	return &user, nil
 }
 
-func (s *UserRepository) GetUser() (error, []*model.User) {
+func (s *DbRepository) GetUser() (error, []*model.User) {
 	var users []*model.User
 	result := s.Store.Db.Order("id").Find(&users)
 	if result.Error != nil {
@@ -74,7 +74,7 @@ func (s *UserRepository) GetUser() (error, []*model.User) {
 	return nil, users
 }
 
-func (s *UserRepository) GetUserByID(id string) (*model.User, error) {
+func (s *DbRepository) GetUserByID(id string) (*model.User, error) {
 	var user *model.User
 	result := s.Store.Db.First(&user, id)
 	if id == "" {
@@ -86,7 +86,7 @@ func (s *UserRepository) GetUserByID(id string) (*model.User, error) {
 	return user, nil
 }
 
-func (s *UserRepository) DeleteUser(id string) error {
+func (s *DbRepository) DeleteUser(id string) error {
 	result := s.Store.Db.Delete(&model.User{}, id)
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("User with id = " + id + " not found")
@@ -98,7 +98,7 @@ func (s *UserRepository) DeleteUser(id string) error {
 	return nil
 }
 
-func (s *UserRepository) UpdateUser(user *model.UserDTO, id string) (*model.User, error) {
+func (s *DbRepository) UpdateUser(user *model.UserDTO, id string) (*model.User, error) {
 	userById, err := s.GetUserByID(id)
 	if err != nil {
 		return nil, err

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 	"github.com/matheusgcoppi/barber-finance-api/database"
@@ -17,10 +18,10 @@ import (
 
 type APIServer struct {
 	store            *database.CustomDB
-	repositoryServer *repository.UserRepository
+	repositoryServer *repository.DbRepository
 }
 
-func NewAPIServer(store *database.CustomDB, repository *repository.UserRepository) *APIServer {
+func NewAPIServer(store *database.CustomDB, repository *repository.DbRepository) *APIServer {
 	return &APIServer{
 		store:            store,
 		repositoryServer: repository,
@@ -123,14 +124,24 @@ func (a *APIServer) HandleCreateUser(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
+
 	if account != nil {
-		user.Account.UserId = account.UserId
-		user.Account.User = account.User
-		user.Account.Balance = account.Balance
-		user.Account.CustomModel = account.CustomModel
+		user.Account = account
 	}
 
 	return c.JSON(http.StatusOK, user)
+}
+
+func (a *APIServer) IndexHandler(c echo.Context) error {
+	c.Response().Header().Set("Content-Type", "text/plain")
+	returnStatus := http.StatusOK
+	c.Response().WriteHeader(returnStatus)
+	message := fmt.Sprintf("Hello %s!", c.Request().UserAgent())
+	_, err := c.Response().Write([]byte(message))
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (a *APIServer) HandleGetUser(c echo.Context) error {
