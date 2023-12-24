@@ -14,6 +14,7 @@ func (s *DbRepository) CreateIncome(income *model.Income) (*model.Income, error)
 		Price:       income.Price,
 		Description: income.Description,
 		When:        income.When,
+		Payment:     income.Payment,
 	}
 
 	result := s.Store.Db.Create(newIncome)
@@ -26,10 +27,8 @@ func (s *DbRepository) CreateIncome(income *model.Income) (*model.Income, error)
 
 func (s *DbRepository) GetIncome() ([]*model.Income, error) {
 	var incomes []*model.Income
-	result := s.Store.Db.Order("id").Find(incomes)
-	if result.Error != nil {
-		return nil, result.Error
-	}
+	s.Store.Db.Raw("SELECT * FROM incomes").Scan(&incomes)
+
 	return incomes, nil
 }
 
@@ -76,9 +75,10 @@ func (s *DbRepository) DeleteIncome(id string) error {
 	return nil
 }
 
-func (s *DbRepository) CreateNewIncome(price float64, description string, when time.Time, payment model.Payment) *model.Income {
+func (s *DbRepository) CreateNewIncome(accountId uint, price float64, description string, when time.Time, payment model.Payment) *model.Income {
 	return &model.Income{
 		CustomModel: model.CustomModel{},
+		AccountID:   accountId,
 		Price:       price,
 		Description: description,
 		When:        when,

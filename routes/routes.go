@@ -15,17 +15,17 @@ func userRoutes(e *echo.Echo, server *service.APIServer, middleware *middleware.
 	e.GET("/", server.IndexHandler)
 	e.GET("/user", middleware.RequireAuth(server.HandleGetUser))
 	e.GET("/user/:id", middleware.RequireAuth(server.HandleGetUserByID))
-	e.POST("/user", middleware.RequireAuth(server.HandleCreateUser))
-	e.POST("/login", middleware.RequireAuth(server.HandleLogin))
+	e.POST("/user", server.HandleCreateUser)
+	e.POST("/login", server.HandleLogin)
 	e.DELETE("/user/:id", middleware.RequireAuth(server.HandleDeleteUser))
 	e.PUT("/user/:id", middleware.RequireAuth(server.HandleUpdateUser))
 	e.GET("validate", middleware.RequireAuth(server.Validate))
 }
 
 func incomeRoutes(e *echo.Echo, server *service.APIServer, middleware *middleware.DatabaseMiddleware) {
-	e.GET("/income", middleware.RequireAuth(server.HandleGetIncome))
+	e.GET("/incomes", middleware.RequireAuth(server.HandleGetIncome))
 	e.GET("/income/:id", middleware.RequireAuth(server.HandleGetIncomeById))
 	e.POST("/income", middleware.RequireAuth(server.HandleCreateIncome))
-	e.DELETE("/income:/id", middleware.RequireAuth(server.HandleDeleteIncome))
+	e.DELETE("/income/:id", middleware.RequireAuth(server.HandleDeleteIncome))
 	e.PUT("/income/:id", middleware.RequireAuth(server.HandleUpdateIncome))
 }

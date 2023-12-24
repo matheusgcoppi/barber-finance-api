@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/matheusgcoppi/barber-finance-api/database"
 	"github.com/matheusgcoppi/barber-finance-api/database/model"
+	"github.com/matheusgcoppi/barber-finance-api/service"
 	"net/http"
 	"os"
 	"time"
@@ -28,37 +29,38 @@ func (s *DatabaseMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc
 			return echo.NewHTTPError(http.StatusUnauthorized, "Authorization cookie not found")
 		}
 
-		token, err := jwt.Parse(cookie.Value, func(token *jwt.Token) (interface{}, error) {
-			if !token.Valid {
-				return nil, echo.NewHTTPError(http.StatusUnauthorized, "Token is invalid")
-			}
+		var customClaims service.CustomClaims
+
+		token, err := jwt.ParseWithClaims(cookie.Value, &customClaims, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-
 			return []byte(os.Getenv("SECRET_JWT")), nil
 		})
 		if err != nil {
 			return echo.NewHTTPError(http.StatusUnauthorized, fmt.Sprintf("Error parsing token: %v", err))
 		}
 
-		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			if float64(time.Now().Unix()) > claims["exp"].(float64) {
-				return echo.NewHTTPError(http.StatusUnauthorized)
+		if !token.Valid {
+			return echo.NewHTTPError(http.StatusUnauthorized, fmt.Sprintf("Token Invalid"))
+		}
+
+		if claims, ok := token.Claims.(*service.CustomClaims); ok {
+			if time.Now().After(claims.ExpiresAt.Time) {
+				return echo.NewHTTPError(http.StatusUnauthorized, "Token has expired")
 			}
 
 			var user model.User
-			s.database.Db.First(&user, claims["sub"])
+			s.database.Db.First(&user, claims.Sub)
 			if user.ID == 0 {
-				return echo.NewHTTPError(http.StatusUnauthorized)
+				return echo.NewHTTPError(http.StatusUnauthorized, "Invalid user ID in token")
 			}
 
 			c.Set("user", user)
-
 			fmt.Println("In middleware")
 			return next(c)
 		} else {
-			return echo.NewHTTPError(http.StatusUnauthorized, err)
+			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid token claims")
 		}
 	}
 }

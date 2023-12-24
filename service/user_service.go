@@ -16,6 +16,11 @@ import (
 	"time"
 )
 
+type CustomClaims struct {
+	jwt.RegisteredClaims
+	Sub uint `json:"sub"`
+}
+
 type APIServer struct {
 	store            *database.CustomDB
 	repositoryServer *repository.DbRepository
@@ -55,9 +60,11 @@ func (a *APIServer) HandleLogin(c echo.Context) error {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"error": err.Error()})
 	}
 
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": user.ID,
-		"exp": time.Now().Add(time.Hour * 24 * 30).Unix(),
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, CustomClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24 * 30)),
+		},
+		Sub: user.ID,
 	})
 
 	tokenString, err := token.SignedString([]byte(os.Getenv("SECRET_JWT")))
@@ -176,7 +183,7 @@ func (a *APIServer) HandleDeleteUser(c echo.Context) error {
 func (a *APIServer) HandleUpdateUser(c echo.Context) error {
 	id := c.Param("id")
 	updatedUser := new(model.UserDTO)
-	if err := c.Bind(updatedUser); err != nil {
+	if err := c.Bind(&updatedUser); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
@@ -194,8 +201,12 @@ func (a *APIServer) HandleUpdateUser(c echo.Context) error {
 		}
 	}
 
-	if updatedUser.Password == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Password cannot be null"})
+	if updatedUser.Password != "" {
+		password, err := HashPassword(updatedUser.Password)
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, map[string]error{"error": err})
+		}
+		updatedUser.Password = password
 	}
 
 	user, err := a.repositoryServer.UpdateUser(updatedUser, id)

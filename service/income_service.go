@@ -1,10 +1,12 @@
 package service
 
 import (
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/matheusgcoppi/barber-finance-api/database/model"
 	"github.com/matheusgcoppi/barber-finance-api/utils"
 	"net/http"
+	"reflect"
 	"strconv"
 )
 
@@ -19,7 +21,7 @@ func (a *APIServer) HandleGetIncome(c echo.Context) error {
 
 func (a *APIServer) HandleGetIncomeById(c echo.Context) error {
 	id := c.Param("id")
-	income, err := a.repositoryServer.GetUserByID(id)
+	income, err := a.repositoryServer.GetIncomeById(id)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
@@ -28,6 +30,7 @@ func (a *APIServer) HandleGetIncomeById(c echo.Context) error {
 
 func (a *APIServer) HandleCreateIncome(c echo.Context) error {
 	incomeDTO := new(model.IncomeDTO)
+
 	err := c.Bind(&incomeDTO)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -60,13 +63,20 @@ func (a *APIServer) HandleCreateIncome(c echo.Context) error {
 	}
 	parsedID := uint(id)
 
+	var result int
+
+	a.store.Db.Raw("SELECT id FROM accounts WHERE user_id = ?;", parsedID).Scan(&result)
+
 	if incomeDTO.AccountID == 0 {
-		incomeDTO.AccountID = parsedID
-	} else if incomeDTO.AccountID != parsedID {
+		incomeDTO.AccountID = uint(result)
+	} else if incomeDTO.AccountID != uint(result) {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Mismatched user IDs."})
 	}
 
+	fmt.Println(incomeDTO.AccountID, reflect.TypeOf(incomeDTO.AccountID))
+
 	newIncome := a.repositoryServer.CreateNewIncome(
+		incomeDTO.AccountID,
 		incomeDTO.Price,
 		incomeDTO.Description,
 		incomeDTO.When,

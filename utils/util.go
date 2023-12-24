@@ -6,6 +6,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -51,10 +52,14 @@ func GetCurrentUserID(c echo.Context) (string, error) {
 		return "", errors.New("invalid token claims")
 	}
 
-	userID, ok := claims["sub"].(string)
+	var userId string
+
+	if id, ok := claims["sub"].(float64); ok {
+		userId = strconv.Itoa(int(id))
+	}
 	if !ok {
 		return "", errors.New("invalid user ID in token")
 	}
 
-	return userID, nil
+	return userId, nil
 }
