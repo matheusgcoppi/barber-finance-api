@@ -58,18 +58,27 @@ func (s *DbRepository) UpdateIncome(income *model.IncomeDTO, id string) (*model.
 		incomeById.Price = income.Price
 	}
 
+	if income.Description != "" {
+		incomeById.Description = income.Description
+	}
+
+	if !income.When.IsZero() {
+		incomeById.When = income.When
+	}
+
+	if income.Payment > 0 && income.Payment < 7 {
+		incomeById.Payment = income.Payment
+	}
+
 	s.Store.Db.Save(incomeById)
 
 	return incomeById, nil
 }
 
 func (s *DbRepository) DeleteIncome(id string) error {
-	result := s.Store.Db.Delete(&model.Income{}, id)
-	if result.RowsAffected == 0 {
-		return fmt.Errorf("User with id = " + id + " not found")
-	}
-	if result.Error != nil {
-		return result.Error
+	result := s.Store.Db.Exec("DELETE FROM incomes WHERE id = ?", id).RowsAffected
+	if result == 0 {
+		return fmt.Errorf("Income id = " + id + " not found")
 	}
 
 	return nil

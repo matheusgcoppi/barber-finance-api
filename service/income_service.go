@@ -92,16 +92,16 @@ func (a *APIServer) HandleCreateIncome(c echo.Context) error {
 
 }
 
-func (a *APIServer) HandleUpdateIncome(c echo.Context) error {
+func (a *APIServer) HandleDeleteIncome(c echo.Context) error {
 	id := c.Param("id")
 	err := a.repositoryServer.DeleteIncome(id)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
-	return c.JSON(http.StatusOK, map[string]string{"result": "User with id = " + id + " was deleted successfully"})
+	return c.JSON(http.StatusOK, map[string]string{"result": "Income id = " + id + " was deleted successfully"})
 }
 
-func (a *APIServer) HandleDeleteIncome(c echo.Context) error {
+func (a *APIServer) HandleUpdateIncome(c echo.Context) error {
 	id := c.Param("id")
 	updatedIncome := new(model.IncomeDTO)
 	err := c.Bind(&updatedIncome)
