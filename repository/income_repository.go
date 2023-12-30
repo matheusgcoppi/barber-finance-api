@@ -38,6 +38,10 @@ func (s *DbRepository) GetIncomeById(id string) (*model.Income, error) {
 
 	result := s.Store.Db.Raw(query, id).Scan(&income)
 
+	if income == nil {
+		return nil, fmt.Errorf("user with id %s not found", id)
+	}
+
 	if result.Error != nil {
 		if gorm.IsRecordNotFoundError(result.Error) {
 			return nil, fmt.Errorf("user with id %s not found", id)

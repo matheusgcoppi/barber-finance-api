@@ -7,11 +7,12 @@ import (
 )
 
 func SetupRoutes(e *echo.Echo, server *service.APIServer, middleware *middleware.DatabaseMiddleware) {
-	userRoutes(e, server, middleware)
-	incomeRoutes(e, server, middleware)
+	user(e, server, middleware)
+	income(e, server, middleware)
+	expense(e, server, middleware)
 }
 
-func userRoutes(e *echo.Echo, server *service.APIServer, middleware *middleware.DatabaseMiddleware) {
+func user(e *echo.Echo, server *service.APIServer, middleware *middleware.DatabaseMiddleware) {
 	e.GET("/", server.IndexHandler)
 	e.GET("/user", middleware.RequireAuth(server.HandleGetUser))
 	e.GET("/user/:id", middleware.RequireAuth(server.HandleGetUserByID))
@@ -19,13 +20,21 @@ func userRoutes(e *echo.Echo, server *service.APIServer, middleware *middleware.
 	e.POST("/login", server.HandleLogin)
 	e.DELETE("/user/:id", middleware.RequireAuth(server.HandleDeleteUser))
 	e.PUT("/user/:id", middleware.RequireAuth(server.HandleUpdateUser))
-	e.GET("validate", middleware.RequireAuth(server.Validate))
+	e.GET("/validate", middleware.RequireAuth(server.Validate))
 }
 
-func incomeRoutes(e *echo.Echo, server *service.APIServer, middleware *middleware.DatabaseMiddleware) {
+func income(e *echo.Echo, server *service.APIServer, middleware *middleware.DatabaseMiddleware) {
 	e.GET("/incomes", middleware.RequireAuth(server.HandleGetIncome))
 	e.GET("/income/:id", middleware.RequireAuth(server.HandleGetIncomeById))
 	e.POST("/income", middleware.RequireAuth(server.HandleCreateIncome))
 	e.DELETE("/income/:id", middleware.RequireAuth(server.HandleDeleteIncome))
 	e.PUT("/income/:id", middleware.RequireAuth(server.HandleUpdateIncome))
+}
+
+func expense(e *echo.Echo, server *service.APIServer, middleware *middleware.DatabaseMiddleware) {
+	e.GET("/expenses", middleware.RequireAuth(server.HandleGetExpenses))
+	e.GET("/expense/:id", middleware.RequireAuth(server.HandleGetExpenseById))
+	e.POST("/expense", middleware.RequireAuth(server.HandleCreateExpense))
+	e.DELETE("/expense/:id", middleware.RequireAuth(server.HandleDeleteExpense))
+	e.PUT("/expense/:id", middleware.RequireAuth(server.HandleUpdateExpense))
 }
