@@ -12,6 +12,7 @@ import (
 
 func main() {
 	e := echo.New()
+
 	db, err := database.NewPostgres()
 	if err != nil {
 		log.Fatal(err)
@@ -23,8 +24,9 @@ func main() {
 
 	middlewaredb := middleware.NewDatabaseMiddleware(db)
 
+	e.Use(middlewaredb.MiddlewareChain())
+
 	routes.SetupRoutes(e, server, middlewaredb)
 
 	e.Logger.Fatal(e.Start(":8080"))
-
 }

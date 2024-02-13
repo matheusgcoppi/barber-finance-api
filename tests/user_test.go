@@ -77,7 +77,6 @@ func TestCreateUser(t *testing.T) {
 	// Assert that there was no error
 	assert.NoError(t, err)
 
-	// Assert the HTTP status code (you can customize this based on your implementation)
 	assert.Equal(t, http.StatusOK, rec.Code)
 }
 

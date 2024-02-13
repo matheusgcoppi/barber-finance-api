@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/matheusgcoppi/barber-finance-api/database"
 	"github.com/matheusgcoppi/barber-finance-api/database/model"
 	"github.com/matheusgcoppi/barber-finance-api/service"
@@ -20,6 +21,16 @@ func NewDatabaseMiddleware(db *database.CustomDB) *DatabaseMiddleware {
 	return &DatabaseMiddleware{
 		database: db,
 	}
+}
+
+func (s *DatabaseMiddleware) MiddlewareChain() echo.MiddlewareFunc {
+	// Create a new CORS middleware instance
+	corsMiddleware := middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowCredentials: true,
+		AllowOrigins:     []string{"http://localhost:8081"},
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+	})
+	return corsMiddleware
 }
 
 func (s *DatabaseMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc {
