@@ -79,6 +79,7 @@ func (a *APIServer) HandleLogin(c echo.Context) error {
 	cookie.Value = tokenString
 	cookie.Expires = time.Now().Add(time.Hour * 24 * 30)
 	cookie.SameSite = http.SameSiteStrictMode
+	cookie.Secure = true
 	c.SetCookie(cookie)
 
 	return c.JSON(http.StatusOK, map[string]string{"token": tokenString})
@@ -217,5 +218,28 @@ func (a *APIServer) HandleUpdateUser(c echo.Context) error {
 }
 
 func (a *APIServer) Validate(c echo.Context) error {
-	return c.JSON(http.StatusOK, map[string]string{"message": "I'm logged in"})
+	return c.JSON(http.StatusOK, map[string]bool{"message": true})
+}
+
+func (a *APIServer) HandleRequestForgotPassword(c echo.Context) error {
+	type emailRequest struct {
+		Email string `json:"email"`
+	}
+	input := new(emailRequest)
+
+	if err := c.Bind(&input); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	if input.Email == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Field E-mail cannot be null"})
+	}
+
+	err := a.repositoryServer.ForgotPassword(input.Email)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	return nil
+
 }
