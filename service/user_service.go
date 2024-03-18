@@ -240,6 +240,35 @@ func (a *APIServer) HandleRequestForgotPassword(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
 	}
 
-	return nil
+	cookie := new(http.Cookie)
+	cookie.Name = "email"
+	cookie.Value = input.Email
+	cookie.Expires = time.Now().Add(time.Minute * 20)
+	cookie.SameSite = http.SameSiteStrictMode
+	cookie.Secure = true
+	c.SetCookie(cookie)
 
+	return c.JSON(http.StatusOK, map[string]string{"message": fmt.Sprintf("Email with Token was sent to %s", input.Email)})
+}
+
+func (a *APIServer) HandleChangePassword(c echo.Context) error {
+	type tokenRequest struct {
+		Token string `json:"token"`
+	}
+	input := new(tokenRequest)
+	if err := c.Bind(&input); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	cookie, err := c.Cookie("email")
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"Error": "Cookie does not exist or could not be read"})
+	}
+
+	err = a.repositoryServer.ChangePassword(cookie.Value, input.Token)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"Error": err.Error()})
+	}
+
+	return c.JSON(http.StatusBadRequest, map[string]string{"result": "Your password was changed successfully"})
 }

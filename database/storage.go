@@ -35,7 +35,7 @@ func NewPostgres() (*CustomDB, error) {
 		return nil, err
 	}
 
-	err = db.AutoMigrate(&model.User{}, &model.Account{}, &model.Income{}, &model.Expense{})
+	err = db.AutoMigrate(&model.User{}, &model.Account{}, &model.Income{}, &model.Expense{}, &model.UserToken{})
 	if err != nil {
 		return nil, err
 	}
@@ -73,6 +73,7 @@ func NewPostgresTest() (*CustomDB, error) {
 			&model.Account{},
 			&model.Income{},
 			&model.Expense{},
+			&model.UserToken{},
 		); err != nil {
 			return nil, err
 		}

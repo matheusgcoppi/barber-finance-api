@@ -1,13 +1,21 @@
 package repository
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/jinzhu/gorm"
+	"github.com/joho/godotenv"
 	"github.com/matheusgcoppi/barber-finance-api/database"
 	"github.com/matheusgcoppi/barber-finance-api/database/model"
+	"github.com/matheusgcoppi/barber-finance-api/mail"
+	"github.com/matheusgcoppi/barber-finance-api/utils"
 	"golang.org/x/crypto/bcrypt"
 	_ "gorm.io/gorm"
+	"html/template"
+	"math/rand"
+	"os"
 	"strings"
+	"time"
 )
 
 type DbRepository struct {
@@ -127,6 +135,129 @@ func (s *DbRepository) UpdateUser(user *model.UserDTO, id string) (*model.User, 
 	s.Store.Db.Save(userById)
 	return userById, nil
 }
+func (s *DbRepository) ForgotPassword(email string) error {
+	err := godotenv.Load("./.env")
+	if err != nil {
+		return fmt.Errorf("error loading .env file")
+	}
+	var userId uint
+	s.Store.Db.Raw("SELECT id FROM users WHERE email = ?", email).Scan(&userId)
+	if userId == 0 {
+		return fmt.Errorf("e-mail was not found")
+	}
+
+	emailSenderName := os.Getenv("email_sender_name")
+	emailSenderEmail := os.Getenv("email_sender_address")
+	emailSenderPassword := os.Getenv("email_sender_password")
+
+	sender := mail.NewGmailSender(emailSenderName, emailSenderEmail, emailSenderPassword)
+
+	subject := "Reset Password Token"
+	t, _ := template.ParseFiles("./mail/forgot-password-template.html")
+	var body bytes.Buffer
+	headers := "MIME-version: 1.0;\nContent-Type: text/html;"
+	body.Write([]byte(fmt.Sprintf("Subject: Forgot Password\n%s\n\n", headers)))
+
+	var table = [...]byte{'1', '2', '3', '4', '5', '6', '7', '8', '9', '0'}
+	source := rand.NewSource(time.Now().UnixNano())
+	rng := rand.New(source)
+	var token string
+	for i := 0; i < 7; i++ {
+		randomInt := rng.Intn(10)
+		token += string(table[randomInt])
+	}
+
+	var name string
+	s.Store.Db.Raw("SELECT username FROM users WHERE id = ?", userId).Scan(&name)
+
+	err = t.Execute(&body, struct {
+		Name  string
+		Token string
+	}{
+		Name:  name,
+		Token: token,
+	})
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
+	tokenEncrypted, err := utils.GetAESEncrypted(token, os.Getenv("KEY"), os.Getenv("IV"))
+	if err != nil {
+		panic(err)
+	}
+
+	var user model.User
+	err = s.Store.Db.Raw("SELECT * FROM users WHERE id = ?", userId).Scan(&user).Error
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+
+	var row model.UserToken
+	err = s.Store.Db.Raw("SELECT * FROM users_token WHERE user_id = ?", userId).Scan(&row).Error
+	if err != nil {
+		return fmt.Errorf(err.Error())
+	}
+	if row.UserID != 0 {
+		row.Token = tokenEncrypted
+		row.CreatedAt = time.Now()
+		row.UpdatedAt = time.Now()
+		s.Store.Db.Save(row)
+	} else {
+		newUserToken := &model.UserToken{
+			UserID: userId,
+			Token:  tokenEncrypted,
+			User:   user,
+		}
+
+		resultToken := s.Store.Db.Create(&newUserToken)
+		if resultToken.Error != nil {
+			return fmt.Errorf("error creating UserToken %s", resultToken.Error)
+		}
+	}
+
+	err = sender.SendEmail(subject, string(body.Bytes()), []string{email}, nil, nil, nil)
+
+	return nil
+}
+
+func (s *DbRepository) ChangePassword(email, token string) error {
+	if email == "" {
+		return fmt.Errorf("email cannot be empty in cookie")
+	} else if token == "" {
+		return fmt.Errorf("token cannot be empty")
+	}
+
+	err := godotenv.Load("./.env")
+	if err != nil {
+		return err
+	}
+
+	var userInfo struct {
+		token     string    `db:"token"`
+		createdAt time.Time `db:"created_at"`
+	}
+	s.Store.Db.Raw("SELECT token, created_at "+
+		"FROM users_token "+
+		"WHERE user_id = (SELECT id FROM users WHERE email = ?)", email).Scan(&userInfo)
+
+	tokenDecrypted, err := utils.GetAESDecrypted(userInfo.token, os.Getenv("KEY"), os.Getenv("IV"))
+	if err != nil {
+		return err
+	}
+
+	if strings.Compare(string(tokenDecrypted), token) != 0 {
+		return fmt.Errorf("token is not valid")
+	}
+
+	currentTime := time.Now()
+	duration := currentTime.Sub(userInfo.createdAt)
+
+	if duration.Minutes() > 20 {
+		fmt.Println("More than 20 minutes have passed since the token creation.")
+	}
+
+	return nil
+}
 
 func NewUser(active bool, userType int, username, email, password string) *model.User {
 	return &model.User{
@@ -136,5 +267,13 @@ func NewUser(active bool, userType int, username, email, password string) *model
 		Username:    username,
 		Email:       email,
 		Password:    password,
+	}
+}
+
+func (s *DbRepository) CreateNewToken(userId uint, token string) *model.UserToken {
+	return &model.UserToken{
+		CustomModel: model.CustomModel{},
+		UserID:      userId,
+		Token:       token,
 	}
 }

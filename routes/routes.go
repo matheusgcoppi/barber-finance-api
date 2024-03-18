@@ -21,6 +21,7 @@ func user(e *echo.Echo, server *service.APIServer, middleware *middleware.Databa
 	e.DELETE("/user/:id", middleware.RequireAuth(server.HandleDeleteUser))
 	e.PUT("/user/:id", middleware.RequireAuth(server.HandleUpdateUser))
 	e.GET("/validate", middleware.RequireAuth(server.Validate))
+	e.POST("/forgot-password", server.HandleRequestForgotPassword)
 }
 
 func income(e *echo.Echo, server *service.APIServer, middleware *middleware.DatabaseMiddleware) {

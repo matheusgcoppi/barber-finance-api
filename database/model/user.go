@@ -29,12 +29,13 @@ type CustomModelBasic struct {
 
 type User struct {
 	CustomModel
-	Active   bool     `json:"active"`
-	Type     Type     `gorm:"not null" sql:"index" json:"type"`
-	Username string   `json:"username"`
-	Email    string   `gorm:"unique" json:"email"`
-	Password string   `json:"password"`
-	Account  *Account `gorm:"ForeignKey:UserId" json:"account,omitempty"`
+	Active    bool       `json:"active"`
+	Type      Type       `gorm:"not null" sql:"index" json:"type"`
+	Username  string     `json:"username"`
+	Email     string     `gorm:"unique" json:"email"`
+	Password  string     `json:"password"`
+	Account   *Account   `gorm:"ForeignKey:UserId" json:"account,omitempty"`
+	UserToken *UserToken `gorm:"ForeignKey:UserID"`
 }
 
 type UserDTO struct {
