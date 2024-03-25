@@ -62,7 +62,7 @@ func createServer(t *testing.T, method string, path string, body io.Reader, id s
 }
 
 func TestCreateUser(t *testing.T) {
-	body := strings.NewReader(`{"type": 2, "username": "matheus","email": "johndoe@example.com", "password": "teste"}`)
+	body := strings.NewReader(`{"type": 2, "username": "matheus","email": "matheuscoppi22@gmail.com", "password": "teste"}`)
 	server, c, rec := createServer(t, "post", "/user", body, "")
 
 	err := server.HandleCreateUser(c)

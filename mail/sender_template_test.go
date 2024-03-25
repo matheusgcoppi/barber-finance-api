@@ -49,7 +49,7 @@ func TestSendEmailTemplate(t *testing.T) {
 		Token: encryptedToken,
 	})
 
-	to := []string{"matheusscoppi22@gmail.com"}
+	to := []string{"matheuscoppi22@gmail.com"}
 
 	err = sender.SendEmail(subject, string(body.Bytes()), to, nil, nil, nil)
 	require.NoError(t, err)

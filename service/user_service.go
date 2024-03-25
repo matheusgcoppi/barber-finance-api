@@ -251,7 +251,7 @@ func (a *APIServer) HandleRequestForgotPassword(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{"message": fmt.Sprintf("Email with Token was sent to %s", input.Email)})
 }
 
-func (a *APIServer) HandleChangePassword(c echo.Context) error {
+func (a *APIServer) HandleResetPassword(c echo.Context) error {
 	type tokenRequest struct {
 		Token string `json:"token"`
 	}
@@ -271,4 +271,30 @@ func (a *APIServer) HandleChangePassword(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusBadRequest, map[string]string{"result": "Your password was changed successfully"})
+}
+
+func (a *APIServer) HandleResetPasswordd(c echo.Context) error {
+	token := c.Param("token")
+	type passwordInput struct {
+		Password string `json:"password"`
+	}
+	input := new(passwordInput)
+
+	if err := c.Bind(&input); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	err := a.repositoryServer.TestResetPassword(token, input.Password)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": err.Error()})
+	}
+
+	return c.JSON(http.StatusBadRequest, map[string]string{"result": "Your password was changed successfully"})
+
+	//err = a.repositoryServer.ChangePassword(cookie.Value, input.Token)
+	//if err != nil {
+	//	return c.JSON(http.StatusBadRequest, map[string]string{"Error": err.Error()})
+	//}
+
+	//return c.JSON(http.StatusBadRequest, map[string]string{"result": "Your password was changed successfully"})
 }

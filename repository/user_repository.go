@@ -14,6 +14,7 @@ import (
 	"html/template"
 	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -146,9 +147,15 @@ func (s *DbRepository) ForgotPassword(email string) error {
 		return fmt.Errorf("e-mail was not found")
 	}
 
-	emailSenderName := os.Getenv("email_sender_name")
-	emailSenderEmail := os.Getenv("email_sender_address")
-	emailSenderPassword := os.Getenv("email_sender_password")
+	fmt.Println(email)
+
+	emailSenderName := os.Getenv("EMAIL_SENDER_NAME")
+	emailSenderEmail := os.Getenv("EMAIL_SENDER_ADDRESS")
+	emailSenderPassword := os.Getenv("EMAIL_SENDER_PASSWORD")
+
+	if emailSenderName == "" || emailSenderEmail == "" || emailSenderPassword == "" {
+		return fmt.Errorf("could not get email sender information from .env file")
+	}
 
 	sender := mail.NewGmailSender(emailSenderName, emailSenderEmail, emailSenderPassword)
 
@@ -254,6 +261,35 @@ func (s *DbRepository) ChangePassword(email, token string) error {
 
 	if duration.Minutes() > 20 {
 		fmt.Println("More than 20 minutes have passed since the token creation.")
+	}
+
+	return nil
+}
+
+func (s *DbRepository) TestResetPassword(token, password string) error {
+	var id uint
+
+	query := `SELECT id FROM users WHERE id = 
+          (SELECT user_id FROM users_token 
+           WHERE users_token.token = ?
+           AND users_token.updated_at > now()::timestamp - INTERVAL '20 min')`
+	err := s.Store.Db.Raw(query, token).Scan(&id).Error
+
+	if err != nil {
+		return err
+	}
+
+	if id == 0 {
+		return fmt.Errorf("token to change the password was expired")
+	}
+
+	user, erre := s.GetUserByID(strconv.Itoa(int(id)))
+	if err != nil {
+		return fmt.Errorf(erre.Error())
+	}
+
+	if password != "" {
+		user.Password = password
 	}
 
 	return nil
